@@ -1,4 +1,6 @@
 # Packages
+from datetime import datetime
+
 import folium
 import geopandas
 import ipywidgets as widgets
@@ -16,8 +18,6 @@ import plotly.express as px
 st.set_page_config(layout='wide')
 
 
-#functions
-
 def show_types(data):
     dt = data.dtypes
     st.dataframe(dt)
@@ -30,19 +30,21 @@ def titles_paraph():
     st.markdown('Data Structures')
 
 
-# extractiona:
-
+# EXTRACTION:
 @st.cache(allow_output_mutation=True)
 def data_collect(path):
     data = pd.read_csv(path)
     data['date'] = pd.to_datetime(data['date'])
     return data
 
+
 @st.cache(allow_output_mutation=True)
 def get_geofile(url):
     geofile = geopandas.read_file(url)
     return geofile
 
+
+# TRANSFORM
 def transform_data(data):
     pd.set_option('display.float.format', lambda x: '%3.f' % x)
     # new columns date:
@@ -63,7 +65,7 @@ def transform_data(data):
 
 
 
-
+#LOAD
 def load_process(data, geofile):
     try:
         st.sidebar.title('Region Price')
@@ -185,31 +187,116 @@ def load_process(data, geofile):
         st.title('Commercial Attributes')
         st.sidebar.title('Commercial Options')
 
-        #Filters
-        #.....
+        min_year_built = int(data['yr_built'].min())
+        max_year_built = int(data['yr_built'].max())
 
+        st.sidebar.subheader('Select Max Year Built')
 
+        Filter_yr_built = st.sidebar.slider('Year Built', min_year_built, max_year_built, min_year_built)
+
+        st.header(' Average Price per Year built')
+
+        df2 = data[data['yr_built'] < Filter_yr_built]
         # AVG price Year
 
         # filtrando por ano
-        df2 = data[['price', 'yr_built']].groupby('yr_built').mean().reset_index()
+        df2 = df2[['price', 'yr_built']].groupby('yr_built').mean().reset_index()
 
         # configurando o gráfico lateralidade==x e horizontal==y
         fig = px.line(df2, x='yr_built', y='price')
 
-        st.markdown('Per Year')
+
         # desenhando o gráfico use_container_width == ajustar a largura
         st.plotly_chart(fig, use_container_width=True)
 
-        #AVG price Day
-        df2 = data[['price', 'day']].groupby('day').mean().reset_index()
+        # AVG price Day
+
+        st.header('Average Price per Day ')
+        st.sidebar.subheader('Select Max Day Built')
+
+        # Filters
+        min_date = datetime.strptime(data['day'].min(), '%Y-%m-%d')
+        max_date = datetime.strptime(data['day'].max(), '%Y-%m-%d')
+        filter_per_day = st.sidebar.slider('Date', min_date, max_date, min_date)
+        data['day'] = pd.to_datetime(data['day'])
+
+        df2 = data[data['day'] < filter_per_day]
+
+        df2 = df2[['day', 'price']].groupby('day').mean().reset_index()
         fig = px.line(df2, x='day', y='price')
-        st.markdown('Per Day')
         st.plotly_chart(fig, use_container_width=True)
 
 
-    except Exception as error:
-        st.write(f"Valores diferentes {error}")
+        #Histograma:
+        st.header('Price Distribution')
+        st.sidebar.subheader('Select Max Price')
+
+        #filter
+        min_price = int(data['price'].min())
+        max_price = int(data['price'].max())
+        avg_price = int(data['price'].mean())
+
+        Filter_price = st.sidebar.slider('Price', min_price, max_price, avg_price)
+        df2 = data.loc[data['price'] < Filter_price]
+
+        #plot
+        fig = px.histogram(df2, x='price', nbins=50)
+        st.plotly_chart(fig, use_container_width=True)
+
+
+        #Distribuição dos imóveis por categorai físicas:
+        st.sidebar.title('Attributes Options')
+        st.title('House Attributes')
+
+        #Filters
+        filter_bedrooms = st.sidebar.selectbox('Max number of bedrooms', sorted(set(data['bedrooms'].unique() ) ))
+
+        filter_bathrooms = st.sidebar.selectbox('Max number of bathrooms', sorted(set(data['bathrooms'].unique() )))
+
+
+        c1, c2 = st.beta_columns(2)
+
+        #House per bedrooms
+        c1.header('House per bedrooms')
+        df2 = data[data['bedrooms'] < filter_bedrooms]
+        fig = px.histogram(df2, x='bedrooms', nbins=19)
+        c1.plotly_chart(fig, use_container_width=True)
+
+        #House per bathrooms
+        c2.header('House per bathrooms')
+        df2 = data[data['bathrooms'] < filter_bathrooms]
+        fig = px.histogram(df2, x='bathrooms', nbins=19)
+        c2.plotly_chart(fig, use_container_width=True)
+
+        #filters
+        filter_floors = st.sidebar.selectbox('Max number of floors',  sorted(set(data['floors'].unique() )))
+        filter_water_vie = st.sidebar.checkbox('Only Houses Water View')
+
+        c1, c2 = st.beta_columns(2)
+
+        #House per floors
+        c1.header('Houses per floor')
+        df2 = data[data['floors'] < filter_floors]
+        fig = px.histogram(df2, x='floors', nbins=19)
+        c1.plotly_chart(fig, use_container_width=True)
+
+        #House per Water View
+
+        #Conditions
+        if filter_water_vie:
+            df2 = data[data['waterfront'] == 1]
+        else:
+            df2 = data.copy()
+
+        c2.header('WaterFront')
+        fig = px.histogram(df2, x='waterfront', nbins=10)
+        c2.plotly_chart(fig, use_container_width=True)
+
+
+
+
+    except:
+        st.write(f"Valores diferentes")
 
 
 
