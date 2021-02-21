@@ -2,12 +2,15 @@
 
 ### Ferramentas
 
+<strong> IDE <strong>
 * Pycharm
+* VSC
+* Jupyter Notebook
+
+<strong> PACOTES <strong>
 * Streamlit
 * Pandas
 * Geopandas
-* VSC
-* Jupyter Notebook
 * Folium
 * Numpy
 * Plotly
