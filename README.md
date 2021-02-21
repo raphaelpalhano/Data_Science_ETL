@@ -1,4 +1,4 @@
-# Repositório para Estudos de ETL
+# Repositório voltado para Data Science - ETL
 
 ### Ferramentas
 
